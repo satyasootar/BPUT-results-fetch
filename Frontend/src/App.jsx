@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const App = () => {
   // State management
@@ -65,6 +66,10 @@ const App = () => {
     try {
       const response = await fetch(`http://localhost:4000/status/${currentJob.jobId}`);
       const jobData = await response.json();
+
+      console.log("JobData:", jobData);
+      
+
       setCurrentJob(jobData);
       
       // Update jobs list
@@ -173,30 +178,25 @@ const App = () => {
     const headers = ['Rank', 'Name', 'Roll No', ...allSubjects.map(s => s.code), 'SGPA'];
 
     // Generate table
-    doc.autoTable({
-      head: [headers],
-      body: tableData,
-      startY: 30,
-      styles: { 
-        fontSize: 8,
-        cellPadding: 2
-      },
-      headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: [240, 240, 240]
-      },
-      columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 30 },
-        [headers.length - 1]: { cellWidth: 20 }
-      },
-      margin: { top: 30 }
-    });
+   autoTable(doc, {
+  head: [headers],
+  body: tableData,
+  startY: 30,
+  styles: { fontSize: 8, cellPadding: 2 },
+  headStyles: {
+    fillColor: [59, 130, 246],
+    textColor: 255,
+    fontStyle: 'bold'
+  },
+  alternateRowStyles: { fillColor: [240, 240, 240] },
+  columnStyles: {
+    0: { cellWidth: 15 },
+    1: { cellWidth: 40 },
+    2: { cellWidth: 30 },
+    [headers.length - 1]: { cellWidth: 20 }
+  },
+  margin: { top: 30 }
+});
 
     // Add subject key
     const finalY = doc.lastAutoTable.finalY || 30;
