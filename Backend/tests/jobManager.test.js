@@ -1,96 +1,87 @@
 // tests/jobManager.test.js
-const jobManager = require("../src/jobManager");
 
-describe("Job Manager Module", () => {
-  let jobId;
+// Mock p-limit to avoid Jest trying to parse the ESM module from node_modules
+jest.mock('p-limit', () => {
+  // pLimit(concurrency) => limiter(fn) => wrappedFn(...args)
+  return () => {
+    return (fn) => {
+      return (...args) => fn(...args);
+    };
+  };
+});
 
-  describe("createJob", () => {
-    it("should create a new job", () => {
-      const config = {
-        rolls: ["2301230001", "2301230002"],
-        dob: "2001-01-01",
-        session: "Odd-(2024-25)",
-      };
+const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
 
-      const job = jobManager.createJob(config);
+describe('JobManager', () => {
+  let jobManager;
 
-      expect(job).toBeDefined();
-      expect(job.id).toBeDefined();
-      expect(job.status).toBe("pending");
-      expect(job.config).toEqual(config);
-      jobId = job.id;
-    });
+  beforeEach(() => {
+    // Ensure a fresh instance of JobManager for each test
+    jest.resetModules();
+    delete require.cache[require.resolve('../src/jobManager')];
+
+    jobManager = require('../src/jobManager');
   });
 
-  describe("getJob", () => {
-    it("should retrieve a job by ID", () => {
-      const job = jobManager.getJob(jobId);
-
-      expect(job).toBeDefined();
-      expect(job.id).toBe(jobId);
-    });
-
-    it("should return undefined for non-existent job", () => {
-      const job = jobManager.getJob("non-existent-id");
-      expect(job).toBeUndefined();
-    });
+  afterEach(() => {
+    // Clear jobManager state (if jobs object exists)
+    if (jobManager && jobManager.jobs) {
+      Object.keys(jobManager.jobs).forEach((key) => delete jobManager.jobs[key]);
+    }
   });
 
-  describe("updateJobStatus", () => {
-    it("should update job status", () => {
-      const job = jobManager.updateJobStatus(jobId, "processing");
-
-      expect(job.status).toBe("processing");
+  it('should create a job', () => {
+    const jobId = jobManager.createJob({
+      startRoll: '2301230010',
+      endRoll: '2301230010',
+      semid: '4',
+      session: 'Even-(2024-25)',
+      namesMap: {},
+      config: {},
     });
+
+    const job = jobManager.getJob(jobId);
+
+    expect(job).toBeDefined();
+    expect(job.id).toBe(jobId);
+    expect(job.total).toBe(1);
+    expect(job.state).toBe('queued');
+    expect(job.rolls).toEqual(['2301230010']);
   });
 
-  describe("updateJobProgress", () => {
-    it("should update job progress", () => {
-      const job = jobManager.updateJobProgress(jobId, 1, 0, 2);
-
-      expect(job.progress.completed).toBe(1);
-      expect(job.progress.failed).toBe(0);
-      expect(job.progress.total).toBe(2);
+  it('should get job status', () => {
+    const jobId = jobManager.createJob({
+      startRoll: '2301230010',
+      endRoll: '2301230010',
+      semid: '4',
+      session: 'Even-(2024-25)',
+      namesMap: {},
+      config: {},
     });
+
+    const status = jobManager.getJobStatus(jobId);
+
+    expect(status).toBeDefined();
+    expect(status.jobId).toBe(jobId);
+    expect(status.total).toBe(1);
+    expect(status.done).toBe(0);
+    expect(status.state).toBe('queued');
   });
 
-  describe("addJobResult", () => {
-    it("should add result to job", () => {
-      const result = { rollNo: "2301230001", sgpa: 8.5 };
-      const job = jobManager.addJobResult(jobId, result);
-
-      expect(job.results).toContain(result);
-    });
-  });
-
-  describe("addJobError", () => {
-    it("should add error to job", () => {
-      const error = new Error("Test error");
-      const job = jobManager.addJobError(jobId, error);
-
-      expect(job.errors.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("getAllJobs", () => {
-    it("should return all jobs", () => {
-      const jobs = jobManager.getAllJobs();
-
-      expect(Array.isArray(jobs)).toBe(true);
-      expect(jobs.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("deleteJob", () => {
-    it("should delete a job", () => {
-      const deleted = jobManager.deleteJob(jobId);
-
-      expect(deleted).toBe(true);
+  it('should stop a job', () => {
+    const jobId = jobManager.createJob({
+      startRoll: '2301230010',
+      endRoll: '2301230010',
+      semid: '4',
+      session: 'Even-(2024-25)',
+      namesMap: {},
+      config: {},
     });
 
-    it("should return false for non-existent job", () => {
-      const deleted = jobManager.deleteJob("non-existent-id");
-      expect(deleted).toBe(false);
-    });
+    const stopped = jobManager.stopJob(jobId);
+    expect(stopped).toBe(true);
+
+    const job = jobManager.getJob(jobId);
+    expect(job.stopRequested).toBe(true);
   });
 });
