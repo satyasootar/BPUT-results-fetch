@@ -1,7 +1,11 @@
-const { v4: uuidv4 } = require('uuid');
+// NEW
+const { randomUUID } = require('crypto');
 const pLimit = require('p-limit');
+
 const fetcher = require('./fetcher');
 const logger = require('./logger');
+const utils = require('./utils');
+
 const { sleep, expandRange, normalizeStudent } = require('./utils');
 
 class JobManager {
@@ -26,7 +30,8 @@ class JobManager {
         const rolls = expandRange(startRoll, endRoll);
         if (!rolls.length) throw new Error('No rolls expanded');
 
-        const jobId = uuidv4();
+        const jobId = randomUUID();
+
         const finalConfig = { ...this.defaultConfig, ...config };
         
         const statusMap = Object.fromEntries(
