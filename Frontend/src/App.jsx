@@ -3,6 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from "jspdf-autotable";
 
+
+const BASE_URL = import.meta.env.VITE_BASE_URL
+console.log("BASE_URL: ", BASE_URL);
 const App = () => {
   // State management
   const [jobs, setJobs] = useState([]);
@@ -51,7 +54,7 @@ const App = () => {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('http://localhost:4000/jobs');
+      const response = await fetch(`${BASE_URL}/jobs`);
       const jobsData = await response.json();
       setJobs(jobsData);
     } catch (error) {
@@ -63,7 +66,7 @@ const App = () => {
     if (!currentJob) return;
 
     try {
-      const response = await fetch(`http://localhost:4000/status/${currentJob.jobId}`);
+      const response = await fetch(`${BASE_URL}/status/${currentJob.jobId}`);
       const jobData = await response.json();
 
       setCurrentJob(jobData);
@@ -82,7 +85,7 @@ const App = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/start', {
+      const response = await fetch(`${BASE_URL}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newJobForm)
@@ -115,7 +118,7 @@ const App = () => {
 
   const stopJob = async (jobId) => {
     try {
-      await fetch(`http://localhost:4000/stop/${jobId}`, { method: 'POST' });
+      await fetch(`${BASE_URL}/stop/${jobId}`, { method: 'POST' });
       fetchJobStatus(); // Refresh status
     } catch (error) {
       console.error('Failed to stop job:', error);
