@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: "https://bputresults.vercel.app" }));
 app.use(express.json({ limit: "10mb" }));
 
 // Upstream endpoints
