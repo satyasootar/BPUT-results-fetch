@@ -468,12 +468,40 @@ app.post("/start", (req, res) => {
   }
 });
 
+// In server.js, update the /status/:jobId endpoint
 app.get("/status/:jobId", (req, res) => {
   const job = jobs[req.params.jobId];
   if (!job) return res.status(404).json({ error: "job not found" });
 
+  // Get all rolls with their status
+  const rolls = Object.entries(job.statusMap).map(([roll, data]) => ({
+    roll,
+    status: data.status,
+    attempts: data.attempts,
+    lastErr: data.lastErr,
+    nextAttemptAt: data.nextAttemptAt,
+    student: data.student
+  }));
+
+  // Get successful students
+  const successfulStudents = Object.values(job.statusMap)
+    .filter(v => v.status === "success" && v.student)
+    .map(v => v.student);
+
+  // Sort successful students by SGPA
+  const students = successfulStudents.sort((a, b) => {
+    const ag = a.sgpa ?? -Infinity,
+      bg = b.sgpa ?? -Infinity;
+    if (bg !== ag) return bg - ag;
+    const at = a.totalGradePoints ?? -Infinity,
+      bt = b.totalGradePoints ?? -Infinity;
+    if (bt !== at) return bt - at;
+    return a.rollNo.localeCompare(b.rollNo);
+  });
+
+  // Get failed rolls
   const failed = Object.entries(job.statusMap)
-    .filter(([r, v]) => v.status !== "success")
+    .filter(([r, v]) => v.status !== "success" && v.attempts > 0)
     .map(([r, v]) => ({
       roll: r,
       status: v.status,
@@ -481,21 +509,6 @@ app.get("/status/:jobId", (req, res) => {
       lastErr: v.lastErr,
       nextAttemptAt: v.nextAttemptAt,
     }));
-
-  const students = Object.values(job.statusMap)
-    .filter((v) => v.student)
-    .map((v) => v.student)
-    .sort((a, b) => {
-      const ag = a.sgpa ?? -Infinity,
-        bg = b.sgpa ?? -Infinity;
-      if (bg !== ag) return bg - ag;
-      const at = a.totalGradePoints ?? -Infinity,
-        bt = b.totalGradePoints ?? -Infinity;
-      if (bt !== at) return bt - at;
-      return a.rollNo.localeCompare(b.rollNo);
-    });
-
-  const top = students.slice(0, 20);
 
   return res.json({
     jobId: job.id,
@@ -506,9 +519,8 @@ app.get("/status/:jobId", (req, res) => {
     cycle: job.cycle,
     universityDown: job.universityDown,
     failed,
-    logs: job.logs ? job.logs.slice(-50) : [],
-    top,
-    students,
+    students, // Always send all successful students, even if job is running
+    rolls, // Send all rolls with their status
     createdAt: job.createdAt,
     lastCycleAt: job.lastCycleAt,
     finishedAt: job.finishedAt,
