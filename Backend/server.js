@@ -14,9 +14,10 @@ app.use(cors({
     "https://bputresults.vercel.app",
     "http://localhost:5173"
   ],
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "OPTIONS"],
   credentials: true
 }));
+
 
 app.use(express.json({ limit: "10mb" }));
 
@@ -609,3 +610,6 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   appendGlobalLog(`Harvester server listening on http://localhost:${PORT}`);
 });
+
+
+module.exports = app;
